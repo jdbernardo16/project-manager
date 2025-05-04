@@ -7,6 +7,7 @@ use App\Models\Resource;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Date; // For date comparisons
+use Carbon\Carbon; // For date manipulation
 
 class DashboardController extends Controller
 {
@@ -43,18 +44,54 @@ class DashboardController extends Controller
                                         ->where('deadline', '<=', now()->addDays(7)->toDateString()) // Due within 7 days
                                         ->count();
 
-        return Inertia::render('Dashboard', [
-            'statistics' => [
-                'totalProjects' => $totalProjects,
-                'availableResources' => $availableResourcesCount,
-                'projectsDueSoon' => $projectsDueSoonCount,
-            ],
-            'ongoingProjects' => $ongoingProjects->map(function ($project) {
+       // Fetch all projects for the calendar view
+       $allProjects = Project::whereNotNull('deadline') // Only include projects with a deadline
+                                ->with('resources') // Eager load resources to find the earliest start date
+                                ->get();
+
+       $allProjectsCalendarData = $allProjects->map(function ($project) {
+           // Find the earliest start date from resource assignments
+           $earliestStartDate = $project->resources
+                                        ->pluck('pivot.start_date')
+                                        ->filter() // Remove null values
+                                        ->sort() // Sort dates
+                                        ->first(); // Get the earliest date
+
+           $startDate = $earliestStartDate ? Carbon::parse($earliestStartDate)->toDateString() : null;
+           $endDate = $project->deadline ? $project->deadline->toDateString() : null;
+
+           return [
+               'id' => $project->id,
+               'title' => $project->title,
+               'start' => $startDate,
+               'end' => $endDate,
+               // Add other relevant project data if needed for the calendar view
+           ];
+       });
+
+       return Inertia::render('Dashboard', [
+           'statistics' => [
+               'totalProjects' => $totalProjects,
+               'availableResources' => $availableResourcesCount,
+               'projectsDueSoon' => $projectsDueSoonCount,
+           ],
+           'allProjectsCalendarData' => $allProjectsCalendarData, // Pass calendar data
+           'ongoingProjects' => $ongoingProjects->map(function ($project) {
+                // Find the earliest start date from resource assignments
+               $earliestStartDate = $project->resources
+                                        ->pluck('pivot.start_date')
+                                        ->filter() // Remove null values
+                                        ->sort() // Sort dates
+                                        ->first(); // Get the earliest date
+
+               $startDate = $earliestStartDate ? Carbon::parse($earliestStartDate)->format('M d, Y') : 'N/A';
+
                  // Basic progress calculation (example)
                 $progress = 50; // Assuming ongoing is 50% for simplicity here
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
+                    'start_date' => $startDate,
                     'deadline' => $project->deadline ? Date::parse($project->deadline)->format('M d, Y') : 'N/A',
                     'resources_count' => $project->resources->count(),
                     'progress' => $progress,
@@ -62,9 +99,19 @@ class DashboardController extends Controller
                 ];
             }),
              'upcomingProjects' => $upcomingProjects->map(function ($project) {
+                // Find the earliest start date from resource assignments
+               $earliestStartDate = $project->resources
+                                        ->pluck('pivot.start_date')
+                                        ->filter() // Remove null values
+                                        ->sort() // Sort dates
+                                        ->first(); // Get the earliest date
+
+               $startDate = $earliestStartDate ? Carbon::parse($earliestStartDate)->format('M d, Y') : 'N/A';
+
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
+                    'start_date' => $startDate,
                     'deadline' => $project->deadline ? Date::parse($project->deadline)->format('M d, Y') : 'N/A',
                     'resources_count' => $project->resources->count(),
                      'assigned_resources' => $project->resources->map(fn($r) => $r->user->name)->implode(', '),

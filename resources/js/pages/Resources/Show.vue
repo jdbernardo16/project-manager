@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Badge from '@/components/ui/badge/Badge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Toaster } from '@/components/ui/toast';
+import { useToast } from '@/components/ui/toast/use-toast';
 import { getInitials } from '@/composables/useInitials';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
@@ -44,6 +46,8 @@ const props = defineProps({
     },
 });
 
+const { toast } = useToast();
+
 const getStatusVariant = (status: ResourceData['availability_status']): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
         case 'available':
@@ -77,7 +81,11 @@ const confirmDeleteResource = () => {
             preserveScroll: true,
             onError: (errors) => {
                 console.error('Resource deletion failed:', errors);
-                alert(errors.error || 'Failed to delete resource. It might be assigned to active projects.');
+                toast({
+                    title: 'Error Deleting Resource',
+                    description: errors.error || 'Failed to delete resource. It might be assigned to active projects.',
+                    variant: 'destructive',
+                });
             },
         });
     }
@@ -92,7 +100,11 @@ const toggleAvailability = () => {
             preserveScroll: true,
             onError: (errors) => {
                 console.error('Error toggling availability:', errors);
-                alert('Failed to toggle availability.');
+                toast({
+                    title: 'Error',
+                    description: 'Failed to toggle availability.',
+                    variant: 'destructive',
+                });
             },
         },
     );
@@ -101,6 +113,7 @@ const toggleAvailability = () => {
 
 <template>
     <AppLayout :title="`Resource: ${resource.name}`">
+        <Toaster />
         <template #header>
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">

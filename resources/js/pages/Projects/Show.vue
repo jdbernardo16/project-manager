@@ -4,6 +4,8 @@ import Badge from '@/components/ui/badge/Badge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Progress from '@/components/ui/progress/Progress.vue'; // Use default import
+import { Toaster } from '@/components/ui/toast';
+import { useToast } from '@/components/ui/toast/use-toast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { Calendar, Clock, Edit, Hourglass, Trash2, Users } from 'lucide-vue-next'; // Import icons
@@ -43,6 +45,8 @@ const props = defineProps({
         required: true,
     },
 });
+
+const { toast } = useToast();
 
 // Computed property for dynamic progress bar class
 const progressBarClass = computed(() => {
@@ -89,8 +93,12 @@ const confirmDeleteProject = () => {
             preserveScroll: true,
             onError: (errors) => {
                 console.error('Project deletion failed:', errors);
-                // Show error notification to user
-                alert(errors.error || 'Failed to delete project. Check console for details.');
+                // Show error notification using toast
+                toast({
+                    title: 'Error Deleting Project',
+                    description: errors.error || 'Failed to delete project. Check console for details.',
+                    variant: 'destructive',
+                });
             },
         });
     }
@@ -99,6 +107,7 @@ const confirmDeleteProject = () => {
 
 <template>
     <AppLayout :title="`Project: ${project.title}`">
+        <Toaster />
         <template #header>
             <div class="flex items-center justify-between">
                 <Heading :title="project.title" :description="`Details for project #${project.id}`" />

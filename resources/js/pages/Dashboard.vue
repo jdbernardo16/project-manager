@@ -22,10 +22,16 @@
             <!-- Resource Availability Section -->
             <ResourceAvailability :resources="resources" />
         </div>
+
+        <!-- All Projects Calendar -->
+        <div class="mt-6">
+            <ProjectsCalendar :projects="allProjectsCalendarData" />
+        </div>
     </AppLayout>
 </template>
 
 <script setup lang="ts">
+import ProjectsCalendar from '@/components/Dashboard/ProjectsCalendar.vue'; // Import new calendar component
 import ProjectsList from '@/components/Dashboard/ProjectsList.vue'; // Will be created
 import ResourceAvailability from '@/components/Dashboard/ResourceAvailability.vue'; // Will be created
 import StatsCard from '@/components/Dashboard/StatsCard.vue'; // Will be created
@@ -75,6 +81,11 @@ const props = defineProps({
     },
     resources: {
         type: Array as PropType<Resource[]>,
+        required: true,
+    },
+    allProjectsCalendarData: {
+        // Define prop for calendar data
+        type: Array as PropType<{ id: number; title: string; start: string | null; end: string | null }[]>,
         required: true,
     },
 });

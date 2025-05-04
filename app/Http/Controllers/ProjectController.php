@@ -124,25 +124,33 @@ class ProjectController extends Controller
     {
         $project->load(['resources.user']);
 
-        $totalDailyCapacity = $project->resources->sum('capacity');
-        $estimatedDays = 0;
-        if ($totalDailyCapacity > 0) {
-            $hoursToEstimate = $project->hours_remaining ?? $project->estimate_hours;
-            $estimatedDays = ceil($hoursToEstimate / $totalDailyCapacity);
-        }
+        $latestEndDate = null;
 
-        $estimatedEndDate = null;
-        if ($estimatedDays > 0) {
-            $currentDate = now();
+        foreach ($project->resources as $resource) {
+            $startDate = Date::parse($resource->pivot->start_date);
+            $assignedHours = $resource->pivot->assigned_hours;
+            $dailyCapacity = $resource->capacity > 0 ? $resource->capacity : 7; // Use a default if capacity is 0
+
+            $estimatedDaysForResource = 0;
+            if ($dailyCapacity > 0) {
+                 $estimatedDaysForResource = ceil($assignedHours / $dailyCapacity);
+            }
+
+            $resourceEndDate = $startDate->copy();
             $daysAdded = 0;
-            while ($daysAdded < $estimatedDays) {
-                $currentDate->addDay();
-                if (!$currentDate->isWeekend()) {
+            while ($daysAdded < $estimatedDaysForResource) {
+                $resourceEndDate->addDay();
+                if (!$resourceEndDate->isWeekend()) {
                     $daysAdded++;
                 }
             }
-            $estimatedEndDate = $currentDate->format('Y-m-d');
+
+            if ($latestEndDate === null || $resourceEndDate->gt($latestEndDate)) {
+                $latestEndDate = $resourceEndDate;
+            }
         }
+
+        $estimatedEndDate = $latestEndDate ? $latestEndDate->format('Y-m-d') : null;
 
         return Inertia::render('Projects/Show', [
             'project' => [
@@ -287,7 +295,7 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project)
     {
-        $assignedResourceIds = $project->resources()->pluck('id')->toArray();
+        $assignedResourceIds = $project->resources()->pluck('resources.id')->toArray();
         $project->resources()->detach();
         $project->delete();
 
