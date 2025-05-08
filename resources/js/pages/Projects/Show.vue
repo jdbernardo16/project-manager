@@ -3,14 +3,14 @@ import Heading from '@/components/Heading.vue';
 import Badge from '@/components/ui/badge/Badge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Progress from '@/components/ui/progress/Progress.vue'; // Use default import
 import { Toaster } from '@/components/ui/toast';
 import { useToast } from '@/components/ui/toast/use-toast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { Calendar, Clock, Edit, Hourglass, Trash2, Users } from 'lucide-vue-next'; // Import icons
-import type { PropType } from 'vue';
-import { computed } from 'vue';
+import { computed, ref, type PropType } from 'vue';
 
 // Interface for assigned resource details within the project prop
 interface AssignedResource {
@@ -47,6 +47,8 @@ const props = defineProps({
 });
 
 const { toast } = useToast();
+
+const isDeleteDialogOpen = ref(false);
 
 // Computed property for dynamic progress bar class
 const progressBarClass = computed(() => {
@@ -86,22 +88,35 @@ const getStatusText = (status: ProjectData['status']): string => {
     return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-// Function to confirm and trigger project deletion
+// Function to open delete confirmation dialog
 const confirmDeleteProject = () => {
-    if (confirm(`Are you sure you want to delete the project "${props.project.title}"? This action cannot be undone.`)) {
-        router.delete(route('projects.destroy', props.project.id), {
-            preserveScroll: true,
-            onError: (errors) => {
-                console.error('Project deletion failed:', errors);
-                // Show error notification using toast
-                toast({
-                    title: 'Error Deleting Project',
-                    description: errors.error || 'Failed to delete project. Check console for details.',
-                    variant: 'destructive',
-                });
-            },
-        });
-    }
+    isDeleteDialogOpen.value = true;
+};
+
+// Function to execute project deletion
+const executeDeleteProject = () => {
+    router.delete(route('projects.destroy', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isDeleteDialogOpen.value = false;
+            // Redirect to projects index or show success toast.
+            // For now, just a toast and close. User will be redirected if controller does so.
+            toast({
+                title: 'Project Deleted',
+                description: `Project "${props.project.title}" has been deleted.`,
+            });
+            // router.visit(route('projects.index')); // Optional: redirect after delete
+        },
+        onError: (errors) => {
+            isDeleteDialogOpen.value = false;
+            console.error('Project deletion failed:', errors);
+            toast({
+                title: 'Error Deleting Project',
+                description: errors.error || 'Failed to delete project. Check console for details.',
+                variant: 'destructive',
+            });
+        },
+    });
 };
 </script>
 
@@ -226,5 +241,21 @@ const confirmDeleteProject = () => {
                 <!-- Placeholder for related tasks or comments -->
             </div>
         </div>
+
+        <!-- Delete Confirmation Dialog -->
+        <Dialog v-model:open="isDeleteDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirm Deletion</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to delete the project "{{ project.title }}"? This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" @click="isDeleteDialogOpen = false"> Cancel </Button>
+                    <Button variant="destructive" @click="executeDeleteProject"> Delete </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>

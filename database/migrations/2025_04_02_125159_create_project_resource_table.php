@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->foreignId('resource_id')->constrained()->onDelete('cascade');
             $table->float('assigned_hours', 8, 2);
+            $table->float('hours_worked', 8, 2)->default(0);
             $table->date('start_date');
             $table->date('end_date')->nullable();
             $table->timestamps();

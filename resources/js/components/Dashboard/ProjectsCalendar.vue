@@ -10,7 +10,7 @@ interface ProjectCalendarEvent {
     title: string;
     start: string | null; // YYYY-MM-DD
     end: string | null; // YYYY-MM-DD
-    // Add other relevant project properties if needed for display
+    // Color will be assigned automatically
 }
 
 const props = defineProps({
@@ -115,6 +115,34 @@ const previousMonth = () => {
 const nextMonth = () => {
     currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1);
 };
+
+// Rainbow color palette
+const rainbowColors = [
+    'red',
+    'orange',
+    'amber',
+    'yellow',
+    'lime',
+    'green',
+    'emerald',
+    'teal',
+    'cyan',
+    'sky',
+    'blue',
+    'indigo',
+    'violet',
+    'purple',
+    'fuchsia',
+    'pink',
+    'rose',
+];
+
+// Get color class based on project ID
+const getProjectColorClass = (id: number) => {
+    const colorIndex = id % rainbowColors.length;
+    const color = rainbowColors[colorIndex];
+    return `bg-${color}-200 text-${color}-800`;
+};
 </script>
 
 <template>
@@ -153,7 +181,8 @@ const nextMonth = () => {
                         <div
                             v-for="event in dateInfo.events"
                             :key="event.id"
-                            class="truncate rounded bg-blue-200 px-1 text-xs text-blue-800"
+                            class="truncate rounded px-1 text-xs"
+                            :class="getProjectColorClass(event.id)"
                             :title="event.title"
                         >
                             {{ event.title }}

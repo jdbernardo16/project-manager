@@ -3,6 +3,28 @@ import defaultTheme from 'tailwindcss/defaultTheme';
 /** @type {import('tailwindcss').Config} */
 export default {
     darkMode: ['class'],
+    safelist: [
+        // Safelist all color variants used in ProjectsCalendar
+        ...[
+            'red',
+            'orange',
+            'amber',
+            'yellow',
+            'lime',
+            'green',
+            'emerald',
+            'teal',
+            'cyan',
+            'sky',
+            'blue',
+            'indigo',
+            'violet',
+            'purple',
+            'fuchsia',
+            'pink',
+            'rose',
+        ].flatMap((color) => [`bg-${color}-200`, `text-${color}-800`]),
+    ],
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',

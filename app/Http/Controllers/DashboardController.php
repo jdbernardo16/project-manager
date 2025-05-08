@@ -22,13 +22,13 @@ class DashboardController extends Controller
         $ongoingProjects = Project::where('status', 'ongoing')
                                 ->with('resources.user') // Eager load for display
                                 ->latest('deadline') // Show nearest deadline first
-                                ->limit(5) // Limit for dashboard view
+                                ->limit(20) // Limit for dashboard view
                                 ->get();
 
         $upcomingProjects = Project::where('status', 'upcoming')
                                 ->with('resources.user')
                                 ->oldest('deadline') // Show furthest deadline first? Or nearest start? Let's use deadline for now.
-                                ->limit(5)
+                                ->limit(20)
                                 ->get();
 
         // Fetch resources with availability
@@ -86,8 +86,9 @@ class DashboardController extends Controller
 
                $startDate = $earliestStartDate ? Carbon::parse($earliestStartDate)->format('M d, Y') : 'N/A';
 
-                 // Basic progress calculation (example)
-                $progress = 50; // Assuming ongoing is 50% for simplicity here
+                 // Use the project's progress accessor like ProjectController does
+                $progress = $project->progress;
+                
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
@@ -119,14 +120,14 @@ class DashboardController extends Controller
             }),
             'resources' => $resources->map(function ($resource) {
                  // Find the current or next project assignment (simplified)
-                $currentProject = $resource->projects()
-                                        ->wherePivot('start_date', '<=', now()->toDateString())
-                                        ->where(function($q) {
-                                            $q->wherePivot('end_date', '>=', now()->toDateString())
-                                              ->orWhereNull('pivot_end_date'); // Corrected pivot column name
-                                        })
-                                        ->orderBy('pivot_start_date') // Corrected pivot column name
-                                        ->first();
+                 $currentProject = $resource->projects()
+                    ->where('project_resource.start_date', '<=', now()->toDateString())
+                    ->where(function ($q) {
+                        $q->where('project_resource.end_date', '>=', now()->toDateString())
+                            ->orWhereNull('project_resource.end_date');
+                    })
+                    ->orderBy('project_resource.start_date')
+                    ->first();
 
                 return [
                     'id' => $resource->id,

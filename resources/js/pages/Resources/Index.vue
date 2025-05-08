@@ -4,13 +4,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Badge from '@/components/ui/badge/Badge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Toaster } from '@/components/ui/toast';
 import { useToast } from '@/components/ui/toast/use-toast';
 import { getInitials } from '@/composables/useInitials'; // Import getInitials
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { Edit, Eye, Trash2, UserPlus } from 'lucide-vue-next'; // Import icons
-import type { PropType } from 'vue';
+import { ref, type PropType } from 'vue';
 
 // Interface matching data from ResourceController@index
 interface Resource {
@@ -34,6 +35,9 @@ const props = defineProps({
 });
 
 const { toast } = useToast();
+
+const isDeleteDialogOpen = ref(false);
+const resourceToDelete = ref<Resource | null>(null);
 
 const getStatusVariant = (status: Resource['availability_status']): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
@@ -61,22 +65,37 @@ const getStatusText = (status: Resource['availability_status']): string => {
     }
 };
 
-// Function to confirm and trigger resource deletion
+// Function to open delete confirmation dialog
 const confirmDeleteResource = (resource: Resource) => {
-    if (confirm(`Are you sure you want to delete the resource "${resource.name}"? This might also delete the associated user.`)) {
-        router.delete(route('resources.destroy', resource.id), {
-            preserveScroll: true,
-            onError: (errors) => {
-                console.error('Resource deletion failed:', errors);
-                // Show error notification from controller flash message or default
-                toast({
-                    title: 'Error Deleting Resource',
-                    description: errors.error || 'Failed to delete resource. It might be assigned to active projects.',
-                    variant: 'destructive',
-                });
-            },
-        });
-    }
+    resourceToDelete.value = resource;
+    isDeleteDialogOpen.value = true;
+};
+
+// Function to execute resource deletion
+const executeDeleteResource = () => {
+    if (!resourceToDelete.value) return;
+
+    router.delete(route('resources.destroy', resourceToDelete.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isDeleteDialogOpen.value = false;
+            toast({
+                title: 'Resource Deleted',
+                description: `Resource "${resourceToDelete.value?.name}" has been deleted.`,
+            });
+            resourceToDelete.value = null;
+        },
+        onError: (errors) => {
+            isDeleteDialogOpen.value = false;
+            console.error('Resource deletion failed:', errors);
+            toast({
+                title: 'Error Deleting Resource',
+                description: errors.error || 'Failed to delete resource. It might be assigned to active projects.',
+                variant: 'destructive',
+            });
+            resourceToDelete.value = null;
+        },
+    });
 };
 
 // Function to handle toggling availability
@@ -187,5 +206,22 @@ const toggleAvailability = (resourceId: number) => {
                 </div>
             </CardContent>
         </Card>
+
+        <!-- Delete Confirmation Dialog -->
+        <Dialog v-model:open="isDeleteDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirm Deletion</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to delete the resource "{{ resourceToDelete?.name }}"? This action might also delete the associated user
+                        and cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" @click="isDeleteDialogOpen = false"> Cancel </Button>
+                    <Button variant="destructive" @click="executeDeleteResource"> Delete </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>
