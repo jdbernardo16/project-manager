@@ -23,11 +23,19 @@ class ProjectController extends Controller
                 $progress = $project->progress;
                 $isOverdue = $project->is_overdue;
 
-                // Check if deadline is near (e.g., within 7 days) and not overdue/completed
+                // Check deadline status flags
                 $deadlineNear = false;
-                if ($project->deadline && !$isOverdue && $project->status !== 'completed') {
-                    $deadlineDate = $project->deadline; // Use the casted date object
-                    $deadlineNear = $deadlineDate->diffInDays(now()) <= 7 && !$deadlineDate->isPast(); // Only near if not already past
+                $deadlineApproaching = false;
+                if ($project->deadline && $project->status !== 'completed') {
+                    $deadlineDate = $project->deadline;
+                    
+                    if ($deadlineDate->isPast()) {
+                        // Past deadline (red/destructive)
+                        $deadlineNear = true;
+                    } else {
+                        // Check if deadline is in the future and within 7 days (yellow/warning)
+                        $deadlineApproaching = $deadlineDate->isFuture() && $deadlineDate->diffInDays(now()) <= 7;
+                    }
                 }
 
                 return [
@@ -42,6 +50,7 @@ class ProjectController extends Controller
                     'progress' => $progress, // Use accessor value
                     'is_overdue' => $isOverdue, // Add overdue status
                     'deadline_near' => $deadlineNear, // Add deadline warning flag (updated logic)
+                    'deadline_approaching' => $deadlineApproaching, // Add approaching deadline flag
                     'assigned_resources' => $project->resources->map(fn($r) => $r->user->name)->implode(', '),
                 ];
             })
@@ -84,7 +93,7 @@ class ProjectController extends Controller
             'resources' => 'nullable|array',
             'resources.*.id' => 'required|exists:resources,id',
             'resources.*.assigned_hours' => 'required|numeric|min:0.1',
-            'resources.*.start_date' => 'required|date|after_or_equal:today',
+            'resources.*.start_date' => 'required|date',
             'resources.*.end_date' => 'nullable|date|after_or_equal:resources.*.start_date',
         ]);
 

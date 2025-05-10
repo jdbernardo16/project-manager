@@ -5,7 +5,7 @@ import type { HTMLAttributes } from 'vue'
 // Basic variant prop for placeholder styling
 const props = defineProps<{
   class?: HTMLAttributes['class']
-  variant?: 'default' | 'secondary' | 'destructive' | 'outline'
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'warning'
 }>()
 
 // Placeholder styling based on variant
@@ -14,6 +14,7 @@ const variantClasses = {
   secondary: 'bg-secondary text-secondary-foreground',
   destructive: 'bg-destructive text-destructive-foreground',
   outline: 'border text-foreground',
+  warning: 'bg-yellow-200 text-yellow-800',
 }
 </script>
 

@@ -53,7 +53,8 @@ interface Project {
     resources_count: number;
     progress: number; // Updated: Now required
     is_overdue: boolean; // Added
-    deadline_near: boolean; // Added
+    deadline_near: boolean;
+    deadline_approaching: boolean;
     assigned_resources?: string; // Optional string list
 }
 

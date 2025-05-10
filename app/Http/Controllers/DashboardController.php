@@ -88,6 +88,24 @@ class DashboardController extends Controller
 
                  // Use the project's progress accessor like ProjectController does
                 $progress = $project->progress;
+                $isOverdue = $project->is_overdue;
+                
+                // Check deadline status flags
+                $deadlineNear = false;
+                $deadlineApproaching = false;
+                if ($project->deadline && $project->status !== 'completed') {
+                    $deadlineDate = $project->deadline;
+                    
+                    if ($deadlineDate->isPast()) {
+                        $deadlineNear = true;
+                    } else {
+                        $daysUntilDeadline = $deadlineDate->diffInDays(now());
+                        // Near if within 3 days (urgent)
+                        $deadlineNear = $daysUntilDeadline <= 3;
+                        // Approaching if between 4-7 days (warning)
+                        $deadlineApproaching = $daysUntilDeadline > 3 && $daysUntilDeadline <= 7;
+                    }
+                }
                 
                 return [
                     'id' => $project->id,
@@ -96,6 +114,9 @@ class DashboardController extends Controller
                     'deadline' => $project->deadline ? Date::parse($project->deadline)->format('M d, Y') : 'N/A',
                     'resources_count' => $project->resources->count(),
                     'progress' => $progress,
+                    'is_overdue' => $isOverdue,
+                    'deadline_near' => $deadlineNear,
+                    'deadline_approaching' => $deadlineApproaching,
                     'assigned_resources' => $project->resources->map(fn($r) => $r->user->name)->implode(', '),
                 ];
             }),
@@ -109,13 +130,33 @@ class DashboardController extends Controller
 
                $startDate = $earliestStartDate ? Carbon::parse($earliestStartDate)->format('M d, Y') : 'N/A';
 
+                // Check deadline status flags for upcoming projects too
+                $deadlineNear = false;
+                $deadlineApproaching = false;
+                if ($project->deadline) {
+                    $deadlineDate = $project->deadline;
+                    
+                    if ($deadlineDate->isPast()) {
+                        $deadlineNear = true;
+                    } else {
+                        $daysUntilDeadline = $deadlineDate->diffInDays(now());
+                        // Near if within 3 days (urgent)
+                        $deadlineNear = $daysUntilDeadline <= 3;
+                        // Approaching if between 4-7 days (warning)
+                        $deadlineApproaching = $daysUntilDeadline > 3 && $daysUntilDeadline <= 7;
+                    }
+                }
+                
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
                     'start_date' => $startDate,
                     'deadline' => $project->deadline ? Date::parse($project->deadline)->format('M d, Y') : 'N/A',
                     'resources_count' => $project->resources->count(),
-                     'assigned_resources' => $project->resources->map(fn($r) => $r->user->name)->implode(', '),
+                    'is_overdue' => $project->is_overdue,
+                    'deadline_near' => $deadlineNear,
+                    'deadline_approaching' => $deadlineApproaching,
+                    'assigned_resources' => $project->resources->map(fn($r) => $r->user->name)->implode(', '),
                 ];
             }),
             'resources' => $resources->map(function ($resource) {

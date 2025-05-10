@@ -12,6 +12,9 @@ interface Project {
     resources_count: number;
     progress?: number; // Optional progress
     assigned_resources?: string; // Optional string list
+    is_overdue?: boolean;
+    deadline_near?: boolean;
+    deadline_approaching?: boolean;
 }
 
 defineProps({
@@ -24,6 +27,42 @@ defineProps({
         required: true,
     },
 });
+
+const getDeadlineVariant = (
+    deadlineNear: boolean | undefined,
+    deadline: string | null,
+    deadlineApproaching: boolean | undefined,
+): 'destructive' | 'warning' | 'outline' | 'secondary' => {
+    if (!deadline) return 'secondary';
+
+    const today = new Date();
+    const deadlineDate = new Date(deadline);
+
+    // Set time to midnight for accurate day comparison
+    today.setHours(0, 0, 0, 0);
+    deadlineDate.setHours(0, 0, 0, 0);
+
+    if (deadlineDate < today) {
+        // Past deadline (red/destructive)
+        return 'destructive';
+    } else {
+        // Calculate difference in days for future deadlines
+        const diffTime = deadlineDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 7) {
+            // Within 7 days (yellow/warning)
+            return 'warning';
+        } else {
+            // More than 7 days away (outline)
+            return 'outline';
+        }
+    }
+};
+
+const getDeadlineText = (deadline: string | null): string => {
+    return deadline ? `Due: ${deadline}` : 'No Deadline';
+};
 </script>
 
 <template>
@@ -46,8 +85,14 @@ defineProps({
                         <Progress v-if="project.progress !== undefined" :model-value="project.progress" class="mt-1 h-2" />
                     </div>
                     <div class="text-right">
-                        <Badge v-if="project.deadline" variant="outline" class="text-xs"> Due: {{ project.deadline }} </Badge>
-                        <Badge v-else variant="secondary" class="text-xs"> No Deadline </Badge>
+                        <Badge
+                            v-if="project.deadline"
+                            :variant="getDeadlineVariant(project.deadline_near, project.deadline, project.deadline_approaching)"
+                            class="text-xs"
+                        >
+                            {{ getDeadlineText(project.deadline) }}
+                        </Badge>
+                        <Badge v-else variant="secondary" class="text-xs">No Deadline</Badge>
                     </div>
                 </div>
             </div>

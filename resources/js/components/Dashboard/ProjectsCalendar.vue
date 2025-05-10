@@ -177,15 +177,17 @@ const getProjectColorClass = (id: number) => {
                     :class="{ 'bg-muted/30': !dateInfo.currentMonth }"
                 >
                     <div class="font-medium" :class="{ 'text-muted-foreground': !dateInfo.currentMonth }">{{ dateInfo.day }}</div>
-                    <div class="mt-1 space-y-0.5">
-                        <div
-                            v-for="event in dateInfo.events"
-                            :key="event.id"
-                            class="truncate rounded px-1 text-xs"
-                            :class="getProjectColorClass(event.id)"
-                            :title="event.title"
-                        >
-                            {{ event.title }}
+                    <div class="hide-scrollbar mt-1 h-full overflow-y-auto">
+                        <div class="space-y-0.5">
+                            <div
+                                v-for="event in dateInfo.events"
+                                :key="event.id"
+                                class="truncate rounded px-1 text-xs"
+                                :class="getProjectColorClass(event.id)"
+                                :title="event.title"
+                            >
+                                {{ event.title }}
+                            </div>
                         </div>
                     </div>
                 </div>
